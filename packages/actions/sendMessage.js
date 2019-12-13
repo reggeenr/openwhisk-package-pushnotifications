@@ -440,6 +440,8 @@ function main(params) {
     apiHost = 'mobile.ng.bluemix.net';
   }
 
+  const startTime = Date.now();
+
   var promise = new Promise(function (resolve, reject) {
     request({
       method: 'post',
@@ -451,11 +453,35 @@ function main(params) {
       },
       body: bodyData
     }, function (error, response, body) {
+      // log the duration and the return code of each outgoing request in order to get insights on the performance and error rate
+      console.log(`Received HTTP response! rc: ${response.statusCode}, duration: ${Date.now()-startTime}ms, url: '${url}'`);
+      
+      
+      // check whether the request returned an error object
       if (error) {
+        console.error(`An error occurred while calling: '${url}', rc: '${response.statusCode}'`,  error);
         reject(error);
+        return; // necessary to avoid misleading log statements
       }
-      var j = JSON.parse(body);
-      resolve(j);
+
+      // check the statusCode of the response
+      if(!response.statusCode || response.statusCode < 200 || response.statusCode > 204) {
+        const errorMessage = `An error occurred while calling: '${url}', rc: '${response.statusCode}', conetnt: '${response.body}'`;
+        console.error(errorMessage);
+        reject({ error: { message: `An error occurred while calling '${url}', rc: '${response.statusCode}'`, name: `${response.statusCode}`}});
+        return; // necessary to avoid misleading log statements
+      }
+
+      // parse the response output to JSON
+      try {
+        const j = JSON.parse(body);
+        resolve(j);
+        return; // necessary to avoid misleading log statements
+      } catch (err) {
+         console.error(`An error occurred while parsing the response content of '${url}' - content: '${body}'`, err);
+         reject(err);
+         return; // necessary to avoid misleading log statements
+      }
     });
   });
   return promise;

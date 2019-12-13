@@ -3,3 +3,7 @@
 build/
 tests/credentials.json
 openwhisk
+.project
+.settings
+.classpath
+**/bin/
